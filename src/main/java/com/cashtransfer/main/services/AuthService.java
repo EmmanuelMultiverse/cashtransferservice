@@ -1,13 +1,16 @@
 package com.cashtransfer.main.services;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.cashtransfer.main.model.Account;
 import com.cashtransfer.main.model.AuthRequest;
@@ -73,6 +76,17 @@ public class AuthService {
         return jwtUtil.generateToken(userDetails);
     }
 
+    public User getCurrentAuthenticatedUser() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
 
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authorized");
+        }
 
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String username = userDetails.getUsername();
+
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException());
+    }
 }   
