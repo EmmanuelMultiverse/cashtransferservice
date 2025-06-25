@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cashtransfer.main.model.BankTransferRequest;
 import com.cashtransfer.main.model.PeerTransferRequest;
 import com.cashtransfer.main.model.TransferResponse;
-import com.cashtransfer.main.model.VersebankResponse;
 import com.cashtransfer.main.services.TransferService;
 
 import org.springframework.http.ResponseEntity;
@@ -26,21 +25,22 @@ public class TransfersController {
     
     @PostMapping("/peer")
     public ResponseEntity<?> transferMoneyToPeer(@RequestBody PeerTransferRequest transferRequest) {
-        
         TransferResponse res = transferService.transferMoney(transferRequest); 
-
         return ResponseEntity.ok(res);
+
     }
 
-    @PostMapping("/bank")
-    public ResponseEntity<?> transferCashToBank(@RequestBody BankTransferRequest transferRequest) {
-        
-        if (transferRequest.getAccountNumber().length() > 6) {
-            TransferResponse res = transferService.transferCashToBankAccount(transferRequest);
-            return ResponseEntity.ok().body(res);
-        } else {
-            TransferResponse res = transferService.transferCashToBankAccount(transferRequest);
-            return ResponseEntity.ok().body(res);
-        }
+    @PostMapping("/bank/withdrawal")
+    public ResponseEntity<TransferResponse> withdrawalCash(@RequestBody BankTransferRequest transferRequest) {
+        TransferResponse res = transferService.transferCashToBankAccount(transferRequest);
+        return ResponseEntity.ok().body(res);
+
     }
+
+    @PostMapping("/bank/deposit")
+    public ResponseEntity<TransferResponse> depositCash(@RequestBody BankTransferRequest transferRequest) {
+       TransferResponse res = transferService.transferCashToMulticashAccount(transferRequest);
+       return ResponseEntity.ok().body(res);
+    }
+    
 }

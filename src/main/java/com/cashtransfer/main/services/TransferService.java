@@ -11,10 +11,10 @@ import com.cashtransfer.main.model.Account;
 import com.cashtransfer.main.model.BankTransferRequest;
 import com.cashtransfer.main.model.PeerTransferRequest;
 import com.cashtransfer.main.model.Transaction;
+import com.cashtransfer.main.model.TransferRequest;
 import com.cashtransfer.main.model.TransferResponse;
 import com.cashtransfer.main.model.User;
 import com.cashtransfer.main.model.VersebankClientRequest;
-import com.cashtransfer.main.model.VersebankResponse;
 import com.cashtransfer.main.repository.AccountRepository;
 import com.cashtransfer.main.repository.UserRepository;
 
@@ -101,6 +101,39 @@ public class TransferService {
                 .orElseThrow(() -> new RuntimeException("Could not find user account"));
         transferResponse.setAccount(updatedAccount);
         transferResponse.setTransferAmount(transferRequest.getAmount());
+        return transferResponse;
+    }
+
+    @Transactional
+    public TransferResponse transferCashToMulticashAccount(BankTransferRequest transferRequest) {
+
+        User user = authService.getCurrentAuthenticatedUser();
+        Account account = accountRepository.findByUserId(user.getId())
+                            .orElseThrow(() -> new RuntimeException(""));
+
+        TransferResponse transferResponse = new TransferResponse();
+
+        if (transferRequest.getAccountNumber().length() > 6) {
+            VersebankClientRequest req = new VersebankClientRequest(transferRequest.getAccountNumber(), transferRequest.getAmount());
+            transferResponse.setMessage(versebankClient.transferCashToMulticashAccount(req).getMessage());
+        } else {
+            transferResponse.setMessage(multibankExternalClient.transferToMulticashAccount(transferRequest));
+        }
+
+        if (!transferResponse.getMessage().toLowerCase().equals("withdrawal successful")) {
+            throw new RuntimeException("Transfer to MultiCash account failed");
+        }
+
+        BigDecimal newBalance = account.getBalance().add(transferRequest.getAmount());
+
+        accountRepository.setBalance(account.getId(), newBalance);
+
+        Account updatedAccount = accountRepository.findById(account.getId())
+                                    .orElseThrow(() -> new RuntimeException("Could not find account"));
+        
+        transferResponse.setAccount(updatedAccount);
+        transferResponse.setTransferAmount(transferRequest.getAmount());
+
         return transferResponse;
     }
 }

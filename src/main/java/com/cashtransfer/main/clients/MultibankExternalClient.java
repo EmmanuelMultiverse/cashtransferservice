@@ -11,4 +11,6 @@ public interface MultibankExternalClient {
     @PostMapping("/transaction/deposit")
     String depositToAccount(BankTransferRequest transferRequest);
 
+    @PostMapping("/transaction/withdrawal")
+    String transferToMulticashAccount(BankTransferRequest transferRequest);
 }
