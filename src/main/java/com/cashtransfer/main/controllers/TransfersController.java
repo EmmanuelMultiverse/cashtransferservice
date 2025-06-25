@@ -23,7 +23,7 @@ public class TransfersController {
         this.transferService = transferService;
     }
     
-    @PostMapping("/transfer")
+    @PostMapping("/peer")
     public ResponseEntity<?> transferMoneyToPeer(@RequestBody PeerTransferRequest transferRequest) {
         
         TransferResponse res = transferService.transferMoney(transferRequest); 
@@ -31,7 +31,7 @@ public class TransfersController {
         return ResponseEntity.ok(res);
     }
 
-    @PostMapping("/transfer-to-bank")
+    @PostMapping("/bank")
     public ResponseEntity<?> transferCashToBank(@RequestBody BankTransferRequest transferRequest) {
         
         return ResponseEntity.ok("Successful transfer to bank");
