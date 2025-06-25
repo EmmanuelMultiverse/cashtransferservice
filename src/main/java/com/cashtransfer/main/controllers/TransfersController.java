@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cashtransfer.main.model.BankTransferRequest;
 import com.cashtransfer.main.model.PeerTransferRequest;
-import com.cashtransfer.main.model.TransferRequest;
 import com.cashtransfer.main.model.TransferResponse;
 import com.cashtransfer.main.services.TransferService;
 

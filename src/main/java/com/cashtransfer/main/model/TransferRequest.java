@@ -2,8 +2,6 @@ package com.cashtransfer.main.model;
 
 import java.math.BigDecimal;
 
-import org.springframework.data.repository.NoRepositoryBean;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

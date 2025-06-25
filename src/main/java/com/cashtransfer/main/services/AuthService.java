@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.cashtransfer.main.model.Account;
 import com.cashtransfer.main.model.AuthRequest;
 import com.cashtransfer.main.model.RegistrationResponse;
 import com.cashtransfer.main.model.User;

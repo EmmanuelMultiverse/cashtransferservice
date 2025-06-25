@@ -13,7 +13,6 @@
     import org.springframework.stereotype.Component;
 
     import java.math.BigDecimal;
-    import java.util.Optional;
 
     /**
      * CommandLineRunner to load mock data into the database on application startup.

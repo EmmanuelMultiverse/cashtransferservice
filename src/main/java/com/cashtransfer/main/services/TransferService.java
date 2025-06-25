@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cashtransfer.main.model.Account;
 import com.cashtransfer.main.model.PeerTransferRequest;
 import com.cashtransfer.main.model.Transaction;
-import com.cashtransfer.main.model.TransferRequest;
 import com.cashtransfer.main.model.TransferResponse;
 import com.cashtransfer.main.model.User;
 import com.cashtransfer.main.repository.AccountRepository;
