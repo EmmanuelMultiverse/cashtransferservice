@@ -34,6 +34,8 @@ public class TransfersController {
     @PostMapping("/bank")
     public ResponseEntity<?> transferCashToBank(@RequestBody BankTransferRequest transferRequest) {
         
-        return ResponseEntity.ok("Successful transfer to bank");
+        TransferResponse res = transferService.transferCashToBankAccount(transferRequest);
+
+        return ResponseEntity.ok().body(res);
     }
 }

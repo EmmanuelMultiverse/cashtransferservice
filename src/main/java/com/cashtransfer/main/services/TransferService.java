@@ -5,7 +5,9 @@ import java.math.BigDecimal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cashtransfer.main.clients.MultibankExternalClient;
 import com.cashtransfer.main.model.Account;
+import com.cashtransfer.main.model.BankTransferRequest;
 import com.cashtransfer.main.model.PeerTransferRequest;
 import com.cashtransfer.main.model.Transaction;
 import com.cashtransfer.main.model.TransferResponse;
@@ -23,8 +25,10 @@ public class TransferService {
     private final AuthService authService;
     private final UserRepository userRepository;
     private final TransactionService transactionService;
+    private final MultibankExternalClient multibankExternalClient;
 
-    public TransferService(TransactionService transactionService, AccountRepository accountRepository, UserRepository userRepository, AuthService authService) {
+    public TransferService(MultibankExternalClient multibankExternalClient, TransactionService transactionService, AccountRepository accountRepository, UserRepository userRepository, AuthService authService) {
+        this.multibankExternalClient = multibankExternalClient;
         this.transactionService = transactionService;
         this.accountRepository = accountRepository;
         this.userRepository = userRepository;
@@ -59,5 +63,32 @@ public class TransferService {
         transactionService.storeTransaction(new Transaction(null, sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber(), transferRequest.getAmount(), LocalDateTime.now(), receivingUser.getId()));
 
         return new TransferResponse(transferRequest.getAmount(), accountAfterTransfer);
+    }
+
+    @Transactional
+    public TransferResponse transferCashToBankAccount(BankTransferRequest transferRequest) {
+        User authenticatedUser = authService.getCurrentAuthenticatedUser();
+        Account userAccount = accountRepository.findByUserId(authenticatedUser.getId())
+                                .orElseThrow(() -> new RuntimeException(""));
+        
+        BigDecimal newBalance = userAccount.getBalance().subtract(transferRequest.getAmount());
+        
+        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("Not enough funds");
+        }
+
+        accountRepository.setBalance(userAccount.getId(), newBalance);
+
+        String res = multibankExternalClient.depositToAccount(transferRequest);
+
+        System.out.println(res);
+        if (!res.equals("Deposit Successfull")) {
+            throw new RuntimeException("Deposit failed");
+        }
+
+        Account updatedAccount = accountRepository.findById(userAccount.getId())
+                .orElseThrow(() -> new RuntimeException("Could not find user account"));
+
+        return new TransferResponse(transferRequest.getAmount(), updatedAccount);
     }
 }
