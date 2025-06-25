@@ -23,10 +23,12 @@ public class TransfersController {
     }
     
     @PostMapping("/transfer")
-    public ResponseEntity<?> postMethodName(@RequestBody TransferRequest transferRequest) {
+    public ResponseEntity<?> transferMoneyToPeer(@RequestBody TransferRequest transferRequest) {
         
         TransferResponse res = transferService.transferMoney(transferRequest); 
 
         return ResponseEntity.ok(res);
     }
+
+
 }
