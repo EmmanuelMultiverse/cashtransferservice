@@ -6,12 +6,12 @@ import org.springframework.data.repository.NoRepositoryBean;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
-@NoRepositoryBean
-public class TransferRequest {
-    private final String receivingUsername;
-    private final BigDecimal amount;
+@NoArgsConstructor
+public abstract class TransferRequest {
+    private BigDecimal amount;
 
 }

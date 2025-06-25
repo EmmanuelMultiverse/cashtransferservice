@@ -3,6 +3,8 @@ package com.cashtransfer.main.controllers;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cashtransfer.main.model.BankTransferRequest;
+import com.cashtransfer.main.model.PeerTransferRequest;
 import com.cashtransfer.main.model.TransferRequest;
 import com.cashtransfer.main.model.TransferResponse;
 import com.cashtransfer.main.services.TransferService;
@@ -23,7 +25,7 @@ public class TransfersController {
     }
     
     @PostMapping("/transfer")
-    public ResponseEntity<?> transferMoneyToPeer(@RequestBody TransferRequest transferRequest) {
+    public ResponseEntity<?> transferMoneyToPeer(@RequestBody PeerTransferRequest transferRequest) {
         
         TransferResponse res = transferService.transferMoney(transferRequest); 
 
@@ -31,9 +33,8 @@ public class TransfersController {
     }
 
     @PostMapping("/transfer-to-bank")
-    public ResponseEntity<?> transferCashToBank(@RequestBody TransferRequest transferRequest) {
+    public ResponseEntity<?> transferCashToBank(@RequestBody BankTransferRequest transferRequest) {
         
         return ResponseEntity.ok("Successful transfer to bank");
     }
-    
 }

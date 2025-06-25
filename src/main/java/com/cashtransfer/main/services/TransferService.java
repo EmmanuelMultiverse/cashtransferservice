@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cashtransfer.main.model.Account;
+import com.cashtransfer.main.model.PeerTransferRequest;
 import com.cashtransfer.main.model.Transaction;
 import com.cashtransfer.main.model.TransferRequest;
 import com.cashtransfer.main.model.TransferResponse;
@@ -32,7 +33,7 @@ public class TransferService {
     }
 
     @Transactional
-    public TransferResponse transferMoney(TransferRequest transferRequest) {
+    public TransferResponse transferMoney(PeerTransferRequest transferRequest) {
 
         User authenticatedUser = authService.getCurrentAuthenticatedUser();
         Account sendingAccount = accountRepository.findById(authenticatedUser.getId())
