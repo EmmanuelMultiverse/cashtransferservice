@@ -6,12 +6,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cashtransfer.main.clients.MultibankExternalClient;
+import com.cashtransfer.main.clients.VersebankClient;
 import com.cashtransfer.main.model.Account;
 import com.cashtransfer.main.model.BankTransferRequest;
 import com.cashtransfer.main.model.PeerTransferRequest;
 import com.cashtransfer.main.model.Transaction;
 import com.cashtransfer.main.model.TransferResponse;
 import com.cashtransfer.main.model.User;
+import com.cashtransfer.main.model.VersebankClientRequest;
+import com.cashtransfer.main.model.VersebankResponse;
 import com.cashtransfer.main.repository.AccountRepository;
 import com.cashtransfer.main.repository.UserRepository;
 
@@ -26,9 +29,11 @@ public class TransferService {
     private final UserRepository userRepository;
     private final TransactionService transactionService;
     private final MultibankExternalClient multibankExternalClient;
+    private final VersebankClient versebankClient;
 
-    public TransferService(MultibankExternalClient multibankExternalClient, TransactionService transactionService, AccountRepository accountRepository, UserRepository userRepository, AuthService authService) {
+    public TransferService(VersebankClient versebankClient, MultibankExternalClient multibankExternalClient, TransactionService transactionService, AccountRepository accountRepository, UserRepository userRepository, AuthService authService) {
         this.multibankExternalClient = multibankExternalClient;
+        this.versebankClient = versebankClient;
         this.transactionService = transactionService;
         this.accountRepository = accountRepository;
         this.userRepository = userRepository;
@@ -62,7 +67,7 @@ public class TransferService {
         transactionService.storeTransaction(new Transaction(null, sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber(), transferRequest.getAmount(), LocalDateTime.now(), authenticatedUser.getId()));
         transactionService.storeTransaction(new Transaction(null, sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber(), transferRequest.getAmount(), LocalDateTime.now(), receivingUser.getId()));
 
-        return new TransferResponse(transferRequest.getAmount(), accountAfterTransfer);
+        return new TransferResponse(transferRequest.getAmount(), accountAfterTransfer, "");
     }
 
     @Transactional
@@ -79,16 +84,23 @@ public class TransferService {
 
         accountRepository.setBalance(userAccount.getId(), newBalance);
 
-        String res = multibankExternalClient.depositToAccount(transferRequest);
+        TransferResponse transferResponse = new TransferResponse();
 
-        System.out.println(res);
-        if (!res.equals("Deposit Successfull")) {
+        if (transferRequest.getAccountNumber().length() > 6) {
+            VersebankClientRequest req = new VersebankClientRequest(transferRequest.getAccountNumber(), transferRequest.getAmount());
+            transferResponse.setMessage(versebankClient.transferCashToBank(req).getMessage());
+        } else {
+            transferResponse.setMessage(multibankExternalClient.depositToAccount(transferRequest));
+        }
+        System.out.println(transferResponse.getMessage());
+        if (!transferResponse.getMessage().toLowerCase().equals("deposit successful")) {
             throw new RuntimeException("Deposit failed");
         }
 
         Account updatedAccount = accountRepository.findById(userAccount.getId())
                 .orElseThrow(() -> new RuntimeException("Could not find user account"));
-
-        return new TransferResponse(transferRequest.getAmount(), updatedAccount);
+        transferResponse.setAccount(updatedAccount);
+        transferResponse.setTransferAmount(transferRequest.getAmount());
+        return transferResponse;
     }
 }

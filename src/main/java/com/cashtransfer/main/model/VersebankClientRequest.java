@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class TransferResponse {
-    private BigDecimal transferAmount;
-    private Account account;
-    private String message;
+public class VersebankClientRequest {
+    private String account_number;
+    private BigDecimal amount;
 }
