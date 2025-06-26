@@ -48,29 +48,22 @@ public class TransferService {
 
 	@Transactional
 	public TransferResponse transferMoney(PeerTransferRequest transferRequest) {
+        User sendingUser = getSendingUser();
+        User receivingUser = getUser(transferRequest.getReceivingUsername());
 
-		User authenticatedUser = authService.getCurrentAuthenticatedUser();
-		Account sendingAccount = getCurrentUserAccountAndValidate(authenticatedUser.getId(),
-				transferRequest.getAmount(), transferRequest.getTransferType());
+        Account sendingAccount = getSendingUserAccountAndValidate(sendingUser.getId(), transferRequest.getAmount(), transferRequest.getTransferType());
+        Account receivingAccount = getAccount(receivingUser.getId());
 
-		User receivingUser = getUser(transferRequest.getReceivingUsername());
-		Account receivingAccount = getAccount(receivingUser.getId());
+		processTransferBetweenAccounts(sendingAccount, receivingAccount, transferRequest.getAmount());
+		processTransaction(transferRequest.getAmount(), sendingUser.getId(), receivingUser.getId(), sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber());
 
-		processTransfer(sendingAccount, receivingAccount, transferRequest.getAmount());
-
-		processTransactions(sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber(),
-				transferRequest.getAmount(), authenticatedUser.getId(), receivingUser.getId());
-
-		Account accountAfterTransfer = getAccount(authenticatedUser.getId());
-
-		return new TransferResponse(transferRequest.getAmount(), accountAfterTransfer, "");
+		return new TransferResponse(transferRequest.getAmount(), getAccount(sendingUser.getId()), "Transfer successful");
 	}
 
 	@Transactional
 	public TransferResponse transferCashToBankAccount(BankTransferRequest transferRequest) {
 		User authenticatedUser = authService.getCurrentAuthenticatedUser();
-		Account userAccount = accountRepository.findByUserId(authenticatedUser.getId())
-			.orElseThrow(() -> new RuntimeException(""));
+		Account userAccount = getSendingUserAccountAndValidate(authenticatedUser.getId(), transferRequest.getAmount(), transferRequest.getTransferType());
 
 		BigDecimal newBalance = userAccount.getBalance().subtract(transferRequest.getAmount());
 
@@ -136,7 +129,7 @@ public class TransferService {
 		return transferResponse;
 	}
 
-	private Account getCurrentUserAccountAndValidate(Long id, BigDecimal amount, String transferType) {
+	private Account getSendingUserAccountAndValidate(Long id, BigDecimal amount, String transferType) {
 
 		Account authenticatedUserAccount = accountRepository.findByUserId(id)
 			.orElseThrow(() -> new RuntimeException("Could not find account for authenticated user."));
@@ -160,7 +153,7 @@ public class TransferService {
 			.orElseThrow(() -> new RuntimeException(String.format("Could not find account for userId: %d", userId)));
 	}
 
-	private void processTransfer(Account sendingAccount, Account receivingAccount, BigDecimal amount) {
+	private void processTransferBetweenAccounts(Account sendingAccount, Account receivingAccount, BigDecimal amount) {
 		BigDecimal sendingNewBalance = sendingAccount.getBalance().subtract(amount);
 		BigDecimal receivingNewBalance = sendingAccount.getBalance().add(amount);
 
@@ -168,10 +161,9 @@ public class TransferService {
 		accountRepository.setBalance(receivingAccount.getId(), receivingNewBalance);
 	}
 
-	private void processTransactions(String sendingAccountNumber, String receivingAccountNumber, BigDecimal amount,
-			Long userId, Long receivingUserId) {
+	private void processTransaction(BigDecimal amount, Long sendingUserId, Long receivingUserId, String sendingAccountNumber, String receivingAccountNumber) {
 		Transaction userTransaction = new Transaction(null, sendingAccountNumber, receivingAccountNumber, amount,
-				LocalDateTime.now(), userId);
+				LocalDateTime.now(), sendingUserId);
 		Transaction sendingUserTransaction = new Transaction(null, sendingAccountNumber, receivingAccountNumber, amount,
 				LocalDateTime.now(), receivingUserId);
 
@@ -179,4 +171,8 @@ public class TransferService {
 		transactionService.storeTransaction(sendingUserTransaction);
 	}
 
+    private User getSendingUser() {
+        User sendingUser = authService.getCurrentAuthenticatedUser();
+        return sendingUser;
+    }
 }
