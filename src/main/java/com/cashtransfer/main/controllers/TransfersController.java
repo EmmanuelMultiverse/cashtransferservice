@@ -25,7 +25,7 @@ public class TransfersController {
 
 	@PostMapping("/peer")
 	public ResponseEntity<TransferResponse> transferMoneyToPeer(@RequestBody PeerTransferRequest transferRequest) {
-		TransferResponse res = transferService.transferMoney(transferRequest);
+		TransferResponse res = transferService.transferMoneyToPeer(transferRequest);
 
 		return ResponseEntity.status(HttpStatus.OK).body(res);
 	}

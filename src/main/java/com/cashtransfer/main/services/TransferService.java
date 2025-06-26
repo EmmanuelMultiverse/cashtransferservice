@@ -47,7 +47,7 @@ public class TransferService {
 	}
 
 	@Transactional
-	public TransferResponse transferMoney(PeerTransferRequest transferRequest) {
+	public TransferResponse transferMoneyToPeer(PeerTransferRequest transferRequest) {
         User sendingUser = getSendingUser();
         User receivingUser = getUser(transferRequest.getReceivingUsername());
 
