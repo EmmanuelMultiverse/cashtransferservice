@@ -11,6 +11,7 @@ import com.cashtransfer.main.model.Account;
 import com.cashtransfer.main.model.BankTransferRequest;
 import com.cashtransfer.main.model.PeerTransferRequest;
 import com.cashtransfer.main.model.Transaction;
+import com.cashtransfer.main.model.TransferRequest;
 import com.cashtransfer.main.model.TransferResponse;
 import com.cashtransfer.main.model.User;
 import com.cashtransfer.main.model.VersebankClientRequest;
@@ -49,33 +50,18 @@ public class TransferService {
 	public TransferResponse transferMoney(PeerTransferRequest transferRequest) {
 
 		User authenticatedUser = authService.getCurrentAuthenticatedUser();
-		Account sendingAccount = accountRepository.findById(authenticatedUser.getId())
-			.orElseThrow(() -> new RuntimeException());
-		if (sendingAccount.getBalance().subtract(transferRequest.getAmount()).compareTo(BigDecimal.ZERO) < 0) {
-			throw new RuntimeException("Not enough funds");
-		}
+		Account sendingAccount = getCurrentUserAccountAndValidate(authenticatedUser.getId(),
+				transferRequest.getAmount(), transferRequest.getTransferType());
 
-		User receivingUser = userRepository.findByUsername(transferRequest.getReceivingUsername())
-			.orElseThrow(() -> new RuntimeException());
+		User receivingUser = getUser(transferRequest.getReceivingUsername());
+		Account receivingAccount = getAccount(receivingUser.getId());
 
-		Account receivingAccount = accountRepository.findByUserId(receivingUser.getId())
-			.orElseThrow(() -> new RuntimeException());
+		processTransfer(sendingAccount, receivingAccount, transferRequest.getAmount());
 
-		BigDecimal sendingNewBalance = sendingAccount.getBalance().subtract(transferRequest.getAmount());
-		BigDecimal receivingNewBalance = receivingAccount.getBalance().add(transferRequest.getAmount());
+		processTransactions(sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber(),
+				transferRequest.getAmount(), authenticatedUser.getId(), receivingUser.getId());
 
-		accountRepository.setBalance(sendingAccount.getId(), sendingNewBalance);
-		accountRepository.setBalance(receivingAccount.getId(), receivingNewBalance);
-
-		Account accountAfterTransfer = accountRepository.findById(authenticatedUser.getId())
-			.orElseThrow(() -> new RuntimeException());
-
-		transactionService.storeTransaction(
-				new Transaction(null, sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber(),
-						transferRequest.getAmount(), LocalDateTime.now(), authenticatedUser.getId()));
-		transactionService.storeTransaction(
-				new Transaction(null, sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber(),
-						transferRequest.getAmount(), LocalDateTime.now(), receivingUser.getId()));
+		Account accountAfterTransfer = getAccount(authenticatedUser.getId());
 
 		return new TransferResponse(transferRequest.getAmount(), accountAfterTransfer, "");
 	}
@@ -148,6 +134,49 @@ public class TransferService {
 		transferResponse.setTransferAmount(transferRequest.getAmount());
 
 		return transferResponse;
+	}
+
+	private Account getCurrentUserAccountAndValidate(Long id, BigDecimal amount, String transferType) {
+
+		Account authenticatedUserAccount = accountRepository.findByUserId(id)
+			.orElseThrow(() -> new RuntimeException("Could not find account for authenticated user."));
+
+		// Rewrite to switch statement if too many checks are happening
+		if (transferType.equalsIgnoreCase("PEER") || transferType.equalsIgnoreCase("WITHDRAWAL")) {
+			if (authenticatedUserAccount.getBalance().compareTo(amount) < 0)
+				throw new RuntimeException("Not enough funds for transfer");
+		}
+
+		return authenticatedUserAccount;
+	}
+
+	private User getUser(String username) {
+		return userRepository.findByUsername(username)
+			.orElseThrow(() -> new RuntimeException(String.format("Could not find username: %s", username)));
+	}
+
+	private Account getAccount(Long userId) {
+		return accountRepository.findByUserId(userId)
+			.orElseThrow(() -> new RuntimeException(String.format("Could not find account for userId: %d", userId)));
+	}
+
+	private void processTransfer(Account sendingAccount, Account receivingAccount, BigDecimal amount) {
+		BigDecimal sendingNewBalance = sendingAccount.getBalance().subtract(amount);
+		BigDecimal receivingNewBalance = sendingAccount.getBalance().add(amount);
+
+		accountRepository.setBalance(sendingAccount.getId(), sendingNewBalance);
+		accountRepository.setBalance(receivingAccount.getId(), receivingNewBalance);
+	}
+
+	private void processTransactions(String sendingAccountNumber, String receivingAccountNumber, BigDecimal amount,
+			Long userId, Long receivingUserId) {
+		Transaction userTransaction = new Transaction(null, sendingAccountNumber, receivingAccountNumber, amount,
+				LocalDateTime.now(), userId);
+		Transaction sendingUserTransaction = new Transaction(null, sendingAccountNumber, receivingAccountNumber, amount,
+				LocalDateTime.now(), receivingUserId);
+
+		transactionService.storeTransaction(userTransaction);
+		transactionService.storeTransaction(sendingUserTransaction);
 	}
 
 }
