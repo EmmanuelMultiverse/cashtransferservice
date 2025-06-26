@@ -8,6 +8,8 @@ import com.cashtransfer.main.model.PeerTransferRequest;
 import com.cashtransfer.main.model.TransferResponse;
 import com.cashtransfer.main.services.TransferService;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,23 +26,23 @@ public class TransfersController {
     }
     
     @PostMapping("/peer")
-    public ResponseEntity<?> transferMoneyToPeer(@RequestBody PeerTransferRequest transferRequest) {
+    public ResponseEntity<TransferResponse> transferMoneyToPeer(@RequestBody PeerTransferRequest transferRequest) {
         TransferResponse res = transferService.transferMoney(transferRequest); 
-        return ResponseEntity.ok(res);
-
+        
+        return ResponseEntity.status(HttpStatus.OK).body(res);
     }
 
     @PostMapping("/bank/withdrawal")
     public ResponseEntity<TransferResponse> withdrawalCash(@RequestBody BankTransferRequest transferRequest) {
         TransferResponse res = transferService.transferCashToBankAccount(transferRequest);
-        return ResponseEntity.ok().body(res);
+        return ResponseEntity.status(HttpStatus.OK).body(res);
 
     }
 
     @PostMapping("/bank/deposit")
     public ResponseEntity<TransferResponse> depositCash(@RequestBody BankTransferRequest transferRequest) {
        TransferResponse res = transferService.transferCashToMulticashAccount(transferRequest);
-       return ResponseEntity.ok().body(res);
+       return ResponseEntity.status(HttpStatus.OK).body(res);
     }
     
 }
