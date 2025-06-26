@@ -10,18 +10,19 @@ import com.cashtransfer.main.repository.TransactionRepository;
 @Service
 public class TransactionService {
 
-    private final TransactionRepository transactionRepository;
+	private final TransactionRepository transactionRepository;
 
-    public TransactionService(TransactionRepository transactionRepository) {
-        this.transactionRepository = transactionRepository;
-    }
+	public TransactionService(TransactionRepository transactionRepository) {
+		this.transactionRepository = transactionRepository;
+	}
 
-    public void storeTransaction(Transaction transaction) {
-        transactionRepository.save(transaction);
-    }
+	public void storeTransaction(Transaction transaction) {
+		transactionRepository.save(transaction);
+	}
 
-    public List<Transaction> getTransactionsById(Long id) {
-        
-        return transactionRepository.findTransactionsByUserId(id);
-    }
+	public List<Transaction> getTransactionsById(Long id) {
+
+		return transactionRepository.findTransactionsByUserId(id);
+	}
+
 }

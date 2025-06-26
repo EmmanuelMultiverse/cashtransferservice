@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 @RequestMapping("/api")
 public class GreetingController {
 
-    @GetMapping("/greeting")
-    public String sayHello() {
-        return "Hello, you have accessed a secured endpoint!";
-    }
-    
+	@GetMapping("/greeting")
+	public String sayHello() {
+		return "Hello, you have accessed a secured endpoint!";
+	}
+
 }

@@ -12,23 +12,24 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.GetMapping;
 
-
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionController {
 
-    private final TransactionService transactionService;
-    private final AuthService authService;
-    
-    public TransactionController(AuthService authService, TransactionService transactionService) {
-        this.transactionService = transactionService;
-        this.authService = authService;
-    }
+	private final TransactionService transactionService;
 
-    @GetMapping
-    public List<Transaction> getTransactions() {
-        User authenticatedUser = authService.getCurrentAuthenticatedUser();
+	private final AuthService authService;
 
-        return transactionService.getTransactionsById(authenticatedUser.getId());
-    }
+	public TransactionController(AuthService authService, TransactionService transactionService) {
+		this.transactionService = transactionService;
+		this.authService = authService;
+	}
+
+	@GetMapping
+	public List<Transaction> getTransactions() {
+		User authenticatedUser = authService.getCurrentAuthenticatedUser();
+
+		return transactionService.getTransactionsById(authenticatedUser.getId());
+	}
+
 }

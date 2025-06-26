@@ -10,10 +10,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class PeerTransferRequest extends TransferRequest {
-    private String receivingUsername;
 
-    public PeerTransferRequest(String receivingUsername, BigDecimal amount) {
-        super(amount);
-        this.receivingUsername = receivingUsername;
-    }
+	private String receivingUsername;
+
+	public PeerTransferRequest(String receivingUsername, BigDecimal amount) {
+		super(amount);
+		this.receivingUsername = receivingUsername;
+	}
+
 }

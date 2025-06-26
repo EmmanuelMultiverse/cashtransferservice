@@ -10,7 +10,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TransferResponse {
-    private BigDecimal transferAmount;
-    private Account account;
-    private String message;
+
+	private BigDecimal transferAmount;
+
+	private Account account;
+
+	private String message;
+
 }

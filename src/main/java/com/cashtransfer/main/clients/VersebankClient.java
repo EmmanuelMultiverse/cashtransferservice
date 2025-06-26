@@ -8,9 +8,10 @@ import com.cashtransfer.main.model.VersebankResponse;
 @FeignClient(name = "versebank", url = "http://localhost:5001")
 public interface VersebankClient {
 
-    @PostMapping("/deposit")
-    VersebankResponse transferCashToBank(VersebankClientRequest transferRequest);
+	@PostMapping("/deposit")
+	VersebankResponse transferCashToBank(VersebankClientRequest transferRequest);
 
-    @PostMapping("/withdrawal")
-    VersebankResponse transferCashToMulticashAccount(VersebankClientRequest transferRequest);
+	@PostMapping("/withdrawal")
+	VersebankResponse transferCashToMulticashAccount(VersebankClientRequest transferRequest);
+
 }

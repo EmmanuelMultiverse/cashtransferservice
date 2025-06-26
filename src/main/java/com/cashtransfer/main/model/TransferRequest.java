@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public abstract class TransferRequest {
-    private BigDecimal amount;
+
+	private BigDecimal amount;
 
 }

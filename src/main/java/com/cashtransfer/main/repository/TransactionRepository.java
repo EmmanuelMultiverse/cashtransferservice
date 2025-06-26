@@ -10,6 +10,7 @@ import com.cashtransfer.main.model.Transaction;
 
 public interface TransactionRepository extends CrudRepository<Transaction, Long> {
 
-    @Query("SELECT * FROM \"transactions\" WHERE \"user_id\" = :userId")
-    List<Transaction> findTransactionsByUserId(@Param("userId") Long userId);
+	@Query("SELECT * FROM \"transactions\" WHERE \"user_id\" = :userId")
+	List<Transaction> findTransactionsByUserId(@Param("userId") Long userId);
+
 }

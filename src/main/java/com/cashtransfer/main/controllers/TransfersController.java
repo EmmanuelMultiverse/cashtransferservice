@@ -14,35 +14,34 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-
 @RestController
 @RequestMapping("/api/transfers")
 public class TransfersController {
 
-    private final TransferService transferService;
+	private final TransferService transferService;
 
-    public TransfersController(TransferService transferService) {
-        this.transferService = transferService;
-    }
-    
-    @PostMapping("/peer")
-    public ResponseEntity<TransferResponse> transferMoneyToPeer(@RequestBody PeerTransferRequest transferRequest) {
-        TransferResponse res = transferService.transferMoney(transferRequest); 
-        
-        return ResponseEntity.status(HttpStatus.OK).body(res);
-    }
+	public TransfersController(TransferService transferService) {
+		this.transferService = transferService;
+	}
 
-    @PostMapping("/bank/withdrawal")
-    public ResponseEntity<TransferResponse> withdrawalCash(@RequestBody BankTransferRequest transferRequest) {
-        TransferResponse res = transferService.transferCashToBankAccount(transferRequest);
-        return ResponseEntity.status(HttpStatus.OK).body(res);
+	@PostMapping("/peer")
+	public ResponseEntity<TransferResponse> transferMoneyToPeer(@RequestBody PeerTransferRequest transferRequest) {
+		TransferResponse res = transferService.transferMoney(transferRequest);
 
-    }
+		return ResponseEntity.status(HttpStatus.OK).body(res);
+	}
 
-    @PostMapping("/bank/deposit")
-    public ResponseEntity<TransferResponse> depositCash(@RequestBody BankTransferRequest transferRequest) {
-       TransferResponse res = transferService.transferCashToMulticashAccount(transferRequest);
-       return ResponseEntity.status(HttpStatus.OK).body(res);
-    }
-    
+	@PostMapping("/bank/withdrawal")
+	public ResponseEntity<TransferResponse> withdrawalCash(@RequestBody BankTransferRequest transferRequest) {
+		TransferResponse res = transferService.transferCashToBankAccount(transferRequest);
+		return ResponseEntity.status(HttpStatus.OK).body(res);
+
+	}
+
+	@PostMapping("/bank/deposit")
+	public ResponseEntity<TransferResponse> depositCash(@RequestBody BankTransferRequest transferRequest) {
+		TransferResponse res = transferService.transferCashToMulticashAccount(transferRequest);
+		return ResponseEntity.status(HttpStatus.OK).body(res);
+	}
+
 }

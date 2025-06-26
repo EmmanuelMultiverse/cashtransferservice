@@ -20,120 +20,135 @@ import com.cashtransfer.main.repository.UserRepository;
 
 import java.time.LocalDateTime;
 
-
 @Service
 public class TransferService {
 
-    private final AccountRepository accountRepository;
-    private final AuthService authService;
-    private final UserRepository userRepository;
-    private final TransactionService transactionService;
-    private final MultibankExternalClient multibankExternalClient;
-    private final VersebankClient versebankClient;
+	private final AccountRepository accountRepository;
 
-    public TransferService(VersebankClient versebankClient, MultibankExternalClient multibankExternalClient, TransactionService transactionService, AccountRepository accountRepository, UserRepository userRepository, AuthService authService) {
-        this.multibankExternalClient = multibankExternalClient;
-        this.versebankClient = versebankClient;
-        this.transactionService = transactionService;
-        this.accountRepository = accountRepository;
-        this.userRepository = userRepository;
-        this.authService = authService;
-    }
+	private final AuthService authService;
 
-    @Transactional
-    public TransferResponse transferMoney(PeerTransferRequest transferRequest) {
+	private final UserRepository userRepository;
 
-        User authenticatedUser = authService.getCurrentAuthenticatedUser();
-        Account sendingAccount = accountRepository.findById(authenticatedUser.getId())
-                                    .orElseThrow(() -> new RuntimeException());
-        if (sendingAccount.getBalance().subtract(transferRequest.getAmount()).compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("Not enough funds");
-        }
+	private final TransactionService transactionService;
 
-        User receivingUser = userRepository.findByUsername(transferRequest.getReceivingUsername()).orElseThrow(() -> new RuntimeException());
+	private final MultibankExternalClient multibankExternalClient;
 
-        Account receivingAccount = accountRepository.findByUserId(receivingUser.getId())
-                                    .orElseThrow(() -> new RuntimeException());
-        
-        BigDecimal sendingNewBalance = sendingAccount.getBalance().subtract(transferRequest.getAmount());
-        BigDecimal receivingNewBalance = receivingAccount.getBalance().add(transferRequest.getAmount());
+	private final VersebankClient versebankClient;
 
-        accountRepository.setBalance(sendingAccount.getId(), sendingNewBalance);
-        accountRepository.setBalance(receivingAccount.getId(), receivingNewBalance);
+	public TransferService(VersebankClient versebankClient, MultibankExternalClient multibankExternalClient,
+			TransactionService transactionService, AccountRepository accountRepository, UserRepository userRepository,
+			AuthService authService) {
+		this.multibankExternalClient = multibankExternalClient;
+		this.versebankClient = versebankClient;
+		this.transactionService = transactionService;
+		this.accountRepository = accountRepository;
+		this.userRepository = userRepository;
+		this.authService = authService;
+	}
 
-        Account accountAfterTransfer = accountRepository.findById(authenticatedUser.getId())
-                                        .orElseThrow(() -> new RuntimeException());
-        
-        transactionService.storeTransaction(new Transaction(null, sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber(), transferRequest.getAmount(), LocalDateTime.now(), authenticatedUser.getId()));
-        transactionService.storeTransaction(new Transaction(null, sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber(), transferRequest.getAmount(), LocalDateTime.now(), receivingUser.getId()));
+	@Transactional
+	public TransferResponse transferMoney(PeerTransferRequest transferRequest) {
 
-        return new TransferResponse(transferRequest.getAmount(), accountAfterTransfer, "");
-    }
+		User authenticatedUser = authService.getCurrentAuthenticatedUser();
+		Account sendingAccount = accountRepository.findById(authenticatedUser.getId())
+			.orElseThrow(() -> new RuntimeException());
+		if (sendingAccount.getBalance().subtract(transferRequest.getAmount()).compareTo(BigDecimal.ZERO) < 0) {
+			throw new RuntimeException("Not enough funds");
+		}
 
-    @Transactional
-    public TransferResponse transferCashToBankAccount(BankTransferRequest transferRequest) {
-        User authenticatedUser = authService.getCurrentAuthenticatedUser();
-        Account userAccount = accountRepository.findByUserId(authenticatedUser.getId())
-                                .orElseThrow(() -> new RuntimeException(""));
-        
-        BigDecimal newBalance = userAccount.getBalance().subtract(transferRequest.getAmount());
-        
-        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("Not enough funds");
-        }
+		User receivingUser = userRepository.findByUsername(transferRequest.getReceivingUsername())
+			.orElseThrow(() -> new RuntimeException());
 
-        accountRepository.setBalance(userAccount.getId(), newBalance);
+		Account receivingAccount = accountRepository.findByUserId(receivingUser.getId())
+			.orElseThrow(() -> new RuntimeException());
 
-        TransferResponse transferResponse = new TransferResponse();
+		BigDecimal sendingNewBalance = sendingAccount.getBalance().subtract(transferRequest.getAmount());
+		BigDecimal receivingNewBalance = receivingAccount.getBalance().add(transferRequest.getAmount());
 
-        if (transferRequest.getAccountNumber().length() > 6) {
-            VersebankClientRequest req = new VersebankClientRequest(transferRequest.getAccountNumber(), transferRequest.getAmount());
-            transferResponse.setMessage(versebankClient.transferCashToBank(req).getMessage());
-        } else {
-            transferResponse.setMessage(multibankExternalClient.depositToAccount(transferRequest));
-        }
-        System.out.println(transferResponse.getMessage());
-        if (!transferResponse.getMessage().toLowerCase().equals("deposit successful")) {
-            throw new RuntimeException("Deposit failed");
-        }
+		accountRepository.setBalance(sendingAccount.getId(), sendingNewBalance);
+		accountRepository.setBalance(receivingAccount.getId(), receivingNewBalance);
 
-        Account updatedAccount = accountRepository.findById(userAccount.getId())
-                .orElseThrow(() -> new RuntimeException("Could not find user account"));
-        transferResponse.setAccount(updatedAccount);
-        transferResponse.setTransferAmount(transferRequest.getAmount());
-        return transferResponse;
-    }
+		Account accountAfterTransfer = accountRepository.findById(authenticatedUser.getId())
+			.orElseThrow(() -> new RuntimeException());
 
-    @Transactional
-    public TransferResponse transferCashToMulticashAccount(BankTransferRequest transferRequest) {
+		transactionService.storeTransaction(
+				new Transaction(null, sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber(),
+						transferRequest.getAmount(), LocalDateTime.now(), authenticatedUser.getId()));
+		transactionService.storeTransaction(
+				new Transaction(null, sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber(),
+						transferRequest.getAmount(), LocalDateTime.now(), receivingUser.getId()));
 
-        User user = authService.getCurrentAuthenticatedUser();
-        Account account = accountRepository.findByUserId(user.getId())
-                            .orElseThrow(() -> new RuntimeException(""));
+		return new TransferResponse(transferRequest.getAmount(), accountAfterTransfer, "");
+	}
 
-        TransferResponse transferResponse = new TransferResponse();
+	@Transactional
+	public TransferResponse transferCashToBankAccount(BankTransferRequest transferRequest) {
+		User authenticatedUser = authService.getCurrentAuthenticatedUser();
+		Account userAccount = accountRepository.findByUserId(authenticatedUser.getId())
+			.orElseThrow(() -> new RuntimeException(""));
 
-        if (transferRequest.getAccountNumber().length() > 6) {
-            VersebankClientRequest req = new VersebankClientRequest(transferRequest.getAccountNumber(), transferRequest.getAmount());
-            transferResponse.setMessage(versebankClient.transferCashToMulticashAccount(req).getMessage());
-        } else {
-            transferResponse.setMessage(multibankExternalClient.transferToMulticashAccount(transferRequest));
-        }
+		BigDecimal newBalance = userAccount.getBalance().subtract(transferRequest.getAmount());
 
-        if (!transferResponse.getMessage().toLowerCase().equals("withdrawal successful")) {
-            throw new RuntimeException("Transfer to MultiCash account failed");
-        }
+		if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+			throw new RuntimeException("Not enough funds");
+		}
 
-        BigDecimal newBalance = account.getBalance().add(transferRequest.getAmount());
+		accountRepository.setBalance(userAccount.getId(), newBalance);
 
-        accountRepository.setBalance(account.getId(), newBalance);
+		TransferResponse transferResponse = new TransferResponse();
 
-        Account updatedAccount = accountRepository.findById(account.getId())
-                                    .orElseThrow(() -> new RuntimeException("Could not find account"));
-        
-        transferResponse.setAccount(updatedAccount);
-        transferResponse.setTransferAmount(transferRequest.getAmount());
+		if (transferRequest.getAccountNumber().length() > 6) {
+			VersebankClientRequest req = new VersebankClientRequest(transferRequest.getAccountNumber(),
+					transferRequest.getAmount());
+			transferResponse.setMessage(versebankClient.transferCashToBank(req).getMessage());
+		}
+		else {
+			transferResponse.setMessage(multibankExternalClient.depositToAccount(transferRequest));
+		}
+		System.out.println(transferResponse.getMessage());
+		if (!transferResponse.getMessage().toLowerCase().equals("deposit successful")) {
+			throw new RuntimeException("Deposit failed");
+		}
 
-        return transferResponse;
-    }
+		Account updatedAccount = accountRepository.findById(userAccount.getId())
+			.orElseThrow(() -> new RuntimeException("Could not find user account"));
+		transferResponse.setAccount(updatedAccount);
+		transferResponse.setTransferAmount(transferRequest.getAmount());
+		return transferResponse;
+	}
+
+	@Transactional
+	public TransferResponse transferCashToMulticashAccount(BankTransferRequest transferRequest) {
+
+		User user = authService.getCurrentAuthenticatedUser();
+		Account account = accountRepository.findByUserId(user.getId()).orElseThrow(() -> new RuntimeException(""));
+
+		TransferResponse transferResponse = new TransferResponse();
+
+		if (transferRequest.getAccountNumber().length() > 6) {
+			VersebankClientRequest req = new VersebankClientRequest(transferRequest.getAccountNumber(),
+					transferRequest.getAmount());
+			transferResponse.setMessage(versebankClient.transferCashToMulticashAccount(req).getMessage());
+		}
+		else {
+			transferResponse.setMessage(multibankExternalClient.transferToMulticashAccount(transferRequest));
+		}
+
+		if (!transferResponse.getMessage().toLowerCase().equals("withdrawal successful")) {
+			throw new RuntimeException("Transfer to MultiCash account failed");
+		}
+
+		BigDecimal newBalance = account.getBalance().add(transferRequest.getAmount());
+
+		accountRepository.setBalance(account.getId(), newBalance);
+
+		Account updatedAccount = accountRepository.findById(account.getId())
+			.orElseThrow(() -> new RuntimeException("Could not find account"));
+
+		transferResponse.setAccount(updatedAccount);
+		transferResponse.setTransferAmount(transferRequest.getAmount());
+
+		return transferResponse;
+	}
+
 }

@@ -15,13 +15,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Table("accounts")
 public class Account {
-    @Id
-    private Long id;
-    
-    private String accountNumber;
-    private BigDecimal balance;
-    private String accountType;
 
-    @Column("user_id")
-    private Long userId;
+	@Id
+	private Long id;
+
+	private String accountNumber;
+
+	private BigDecimal balance;
+
+	private String accountType;
+
+	@Column("user_id")
+	private Long userId;
+
 }

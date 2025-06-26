@@ -10,6 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class VersebankClientRequest {
-    private String account_number;
-    private BigDecimal amount;
+
+	private String account_number;
+
+	private BigDecimal amount;
+
 }

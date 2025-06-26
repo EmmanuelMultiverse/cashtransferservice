@@ -8,9 +8,10 @@ import com.cashtransfer.main.model.BankTransferRequest;
 @FeignClient(name = "multibank-client", url = "http://localhost:9090/api")
 public interface MultibankExternalClient {
 
-    @PostMapping("/transaction/deposit")
-    String depositToAccount(BankTransferRequest transferRequest);
+	@PostMapping("/transaction/deposit")
+	String depositToAccount(BankTransferRequest transferRequest);
 
-    @PostMapping("/transaction/withdrawal")
-    String transferToMulticashAccount(BankTransferRequest transferRequest);
+	@PostMapping("/transaction/withdrawal")
+	String transferToMulticashAccount(BankTransferRequest transferRequest);
+
 }

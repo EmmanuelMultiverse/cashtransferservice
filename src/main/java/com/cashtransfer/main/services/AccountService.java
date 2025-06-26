@@ -14,35 +14,37 @@ import com.cashtransfer.main.repository.UserRepository;
 @Service
 public class AccountService {
 
-    private final AccountRepository accountRepository;
-    private final UserRepository userRepository;
-    
-    public AccountService(AccountRepository accountRepository, UserRepository userRepository) {
-        this.accountRepository = accountRepository;
-        this.userRepository = userRepository;
-    }
+	private final AccountRepository accountRepository;
 
-    @Transactional
-    public Account createInitialAccountForUser(User user, String accountType) {
-        if (accountRepository.findByUserId(user.getId()).isPresent()) {
-            throw new IllegalStateException("User: " + user.getUsername() + " already has an account.");
-        }
+	private final UserRepository userRepository;
 
-        String newAccountNumber = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+	public AccountService(AccountRepository accountRepository, UserRepository userRepository) {
+		this.accountRepository = accountRepository;
+		this.userRepository = userRepository;
+	}
 
-        while (accountRepository.findByAccountNumber(newAccountNumber).isPresent()) {
-            newAccountNumber = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
-        }
+	@Transactional
+	public Account createInitialAccountForUser(User user, String accountType) {
+		if (accountRepository.findByUserId(user.getId()).isPresent()) {
+			throw new IllegalStateException("User: " + user.getUsername() + " already has an account.");
+		}
 
-        var account = new Account();
-        account.setAccountNumber(newAccountNumber);
-        account.setAccountType(accountType);
-        account.setBalance(BigDecimal.ZERO);
-        account.setUserId(user.getId());
+		String newAccountNumber = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
 
-        user.setAccount(account);
-        userRepository.save(user);
+		while (accountRepository.findByAccountNumber(newAccountNumber).isPresent()) {
+			newAccountNumber = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+		}
 
-        return account;
-    }
+		var account = new Account();
+		account.setAccountNumber(newAccountNumber);
+		account.setAccountType(accountType);
+		account.setBalance(BigDecimal.ZERO);
+		account.setUserId(user.getId());
+
+		user.setAccount(account);
+		userRepository.save(user);
+
+		return account;
+	}
+
 }

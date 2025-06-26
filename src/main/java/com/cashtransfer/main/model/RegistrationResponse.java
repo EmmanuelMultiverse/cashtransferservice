@@ -8,7 +8,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RegistrationResponse {
-    private String username;
-    private String message;
-    private Account account;
+
+	private String username;
+
+	private String message;
+
+	private Account account;
+
 }

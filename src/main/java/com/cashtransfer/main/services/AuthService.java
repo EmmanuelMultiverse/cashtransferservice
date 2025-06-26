@@ -21,71 +21,67 @@ import com.cashtransfer.main.util.JwtUtil;
 @Service
 public class AuthService {
 
-    private final AuthenticationManager authenticationManager;
-    private final AccountService accountService;
-    private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    
-    public AuthService(AuthenticationManager authenticationManager, AccountService accountService, JwtUtil jwtUtil,
-        UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.authenticationManager = authenticationManager;
-        this.accountService = accountService;
-        this.jwtUtil = jwtUtil;
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-    
+	private final AuthenticationManager authenticationManager;
 
-    @Transactional
-    public RegistrationResponse registeUser(AuthRequest authRequest) {
-        if (userRepository.findByUsername(authRequest.getUsername()).isPresent()) {
-            throw new IllegalArgumentException("Username already exists");
-        }
+	private final AccountService accountService;
 
-        var newUser = new User(
-            null,
-            authRequest.getUsername(),
-            passwordEncoder.encode(authRequest.getPassword()),
-            "USER",
-            null
-        );
-        
-        var savedUser = userRepository.save(newUser);
+	private final JwtUtil jwtUtil;
 
-        var initialAccount = accountService.createInitialAccountForUser(savedUser, "CHECKING");
-        
-        return new RegistrationResponse(
-            savedUser.getUsername(),
-            "User registered successfully",
-            initialAccount
-        );
-    }
+	private final UserRepository userRepository;
 
-    public String authenticateAndGenerateToken(AuthRequest authRequest) {
-        Authentication authentication;
-        try {
-            authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
-        } catch (BadCredentialsException e) {
-            throw new BadCredentialsException("Invalid username or password", e);
-        }
+	private final PasswordEncoder passwordEncoder;
 
-        var userDetails = (UserDetails) authentication.getPrincipal();
+	public AuthService(AuthenticationManager authenticationManager, AccountService accountService, JwtUtil jwtUtil,
+			UserRepository userRepository, PasswordEncoder passwordEncoder) {
+		this.authenticationManager = authenticationManager;
+		this.accountService = accountService;
+		this.jwtUtil = jwtUtil;
+		this.userRepository = userRepository;
+		this.passwordEncoder = passwordEncoder;
+	}
 
-        return jwtUtil.generateToken(userDetails);
-    }
+	@Transactional
+	public RegistrationResponse registeUser(AuthRequest authRequest) {
+		if (userRepository.findByUsername(authRequest.getUsername()).isPresent()) {
+			throw new IllegalArgumentException("Username already exists");
+		}
 
-    public User getCurrentAuthenticatedUser() {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
+		var newUser = new User(null, authRequest.getUsername(), passwordEncoder.encode(authRequest.getPassword()),
+				"USER", null);
 
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authorized");
-        }
+		var savedUser = userRepository.save(newUser);
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String username = userDetails.getUsername();
+		var initialAccount = accountService.createInitialAccountForUser(savedUser, "CHECKING");
 
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException());
-    }
-}   
+		return new RegistrationResponse(savedUser.getUsername(), "User registered successfully", initialAccount);
+	}
+
+	public String authenticateAndGenerateToken(AuthRequest authRequest) {
+		Authentication authentication;
+		try {
+			authentication = authenticationManager.authenticate(
+					new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
+		}
+		catch (BadCredentialsException e) {
+			throw new BadCredentialsException("Invalid username or password", e);
+		}
+
+		var userDetails = (UserDetails) authentication.getPrincipal();
+
+		return jwtUtil.generateToken(userDetails);
+	}
+
+	public User getCurrentAuthenticatedUser() {
+		var authentication = SecurityContextHolder.getContext().getAuthentication();
+
+		if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authorized");
+		}
+
+		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+		String username = userDetails.getUsername();
+
+		return userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException());
+	}
+
+}

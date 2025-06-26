@@ -9,10 +9,13 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class BankTransferRequest extends TransferRequest{
-    private String accountNumber;
-    public BankTransferRequest(String accountNumber, BigDecimal amount) {
-        super(amount);
-        this.accountNumber = accountNumber;
-    }
+public class BankTransferRequest extends TransferRequest {
+
+	private String accountNumber;
+
+	public BankTransferRequest(String accountNumber, BigDecimal amount) {
+		super(amount);
+		this.accountNumber = accountNumber;
+	}
+
 }

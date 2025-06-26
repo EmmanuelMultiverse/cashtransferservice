@@ -11,11 +11,13 @@ import org.springframework.data.repository.query.Param;
 import com.cashtransfer.main.model.Account;
 
 public interface AccountRepository extends CrudRepository<Account, Long> {
-    Optional<Account> findByUserId(Long userId);
 
-    Optional<Account> findByAccountNumber(String accountNumber);
+	Optional<Account> findByUserId(Long userId);
 
-    @Modifying
-    @Query("UPDATE \"accounts\" SET balance = :newBalance WHERE id = :accountId")
-    int setBalance(@Param("accountId") Long accountId, @Param("newBalance") BigDecimal newBalance);
+	Optional<Account> findByAccountNumber(String accountNumber);
+
+	@Modifying
+	@Query("UPDATE \"accounts\" SET balance = :newBalance WHERE id = :accountId")
+	int setBalance(@Param("accountId") Long accountId, @Param("newBalance") BigDecimal newBalance);
+
 }

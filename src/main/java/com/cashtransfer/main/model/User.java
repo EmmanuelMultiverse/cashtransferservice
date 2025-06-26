@@ -18,41 +18,43 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table("users")
-public class User implements UserDetails{
-    @Id
-    private Long id;
-    private String username;
-    private String password;
-    private String role;
+public class User implements UserDetails {
 
-    @MappedCollection(idColumn = "user_id")
-    private Account account;
+	@Id
+	private Long id;
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role));
-    }
+	private String username;
 
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
+	private String password;
 
-    
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
+	private String role;
 
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
+	@MappedCollection(idColumn = "user_id")
+	private Account account;
 
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return List.of(new SimpleGrantedAuthority(role));
+	}
 
+	@Override
+	public boolean isAccountNonExpired() {
+		return true;
+	}
+
+	@Override
+	public boolean isAccountNonLocked() {
+		return true;
+	}
+
+	@Override
+	public boolean isCredentialsNonExpired() {
+		return true;
+	}
+
+	@Override
+	public boolean isEnabled() {
+		return true;
+	}
 
 }

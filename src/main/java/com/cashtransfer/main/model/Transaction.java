@@ -14,13 +14,19 @@ import lombok.Data;
 @AllArgsConstructor
 @Table("transactions")
 public class Transaction {
-    @Id
-    private final Long id;
-    private final String sendingAccountId;
-    private final String receivingAccountId;
-    private final BigDecimal transferAmount;
-    private final LocalDateTime localDateTime;
 
-    @Column("user_id")
-    private Long userId;
+	@Id
+	private final Long id;
+
+	private final String sendingAccountId;
+
+	private final String receivingAccountId;
+
+	private final BigDecimal transferAmount;
+
+	private final LocalDateTime localDateTime;
+
+	@Column("user_id")
+	private Long userId;
+
 }
