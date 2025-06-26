@@ -62,37 +62,16 @@ public class TransferService {
 
 	@Transactional
 	public TransferResponse transferCashToBankAccount(BankTransferRequest transferRequest) {
-		User authenticatedUser = authService.getCurrentAuthenticatedUser();
-		Account userAccount = getSendingUserAccountAndValidate(authenticatedUser.getId(), transferRequest.getAmount(), transferRequest.getTransferType());
+		User user = getSendingUser();
+		Account userAccount = getSendingUserAccountAndValidate(user.getId(), transferRequest.getAmount(), transferRequest.getTransferType());
 
-		BigDecimal newBalance = userAccount.getBalance().subtract(transferRequest.getAmount());
+        withdrawalFundsFromAccount(userAccount.getId(), userAccount.getBalance(), transferRequest.getAmount());
 
-		if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
-			throw new RuntimeException("Not enough funds");
-		}
+		String externalTransferMessage = executeExternalTransfer(transferRequest);
+        
+		validateExternalTransferResult(externalTransferMessage);
 
-		accountRepository.setBalance(userAccount.getId(), newBalance);
-
-		TransferResponse transferResponse = new TransferResponse();
-
-		if (transferRequest.getAccountNumber().length() > 6) {
-			VersebankClientRequest req = new VersebankClientRequest(transferRequest.getAccountNumber(),
-					transferRequest.getAmount());
-			transferResponse.setMessage(versebankClient.transferCashToBank(req).getMessage());
-		}
-		else {
-			transferResponse.setMessage(multibankExternalClient.depositToAccount(transferRequest));
-		}
-		System.out.println(transferResponse.getMessage());
-		if (!transferResponse.getMessage().toLowerCase().equals("deposit successful")) {
-			throw new RuntimeException("Deposit failed");
-		}
-
-		Account updatedAccount = accountRepository.findById(userAccount.getId())
-			.orElseThrow(() -> new RuntimeException("Could not find user account"));
-		transferResponse.setAccount(updatedAccount);
-		transferResponse.setTransferAmount(transferRequest.getAmount());
-		return transferResponse;
+		return prepareTransferResponse(user.getId(), transferRequest.getAmount(), externalTransferMessage);
 	}
 
 	@Transactional
@@ -174,5 +153,36 @@ public class TransferService {
     private User getSendingUser() {
         User sendingUser = authService.getCurrentAuthenticatedUser();
         return sendingUser;
+    }
+
+    private void withdrawalFundsFromAccount(Long accountId, BigDecimal currentBalance, BigDecimal amount) {
+        BigDecimal newBalance = currentBalance.subtract(amount);
+        accountRepository.setBalance(accountId, newBalance);
+    }
+
+    private String executeExternalTransfer(BankTransferRequest transferRequest) {
+        if (transferRequest.getAccountNumber().length() > 6) {
+            VersebankClientRequest req = new VersebankClientRequest(transferRequest.getAccountNumber(), transferRequest.getAmount());
+            return versebankClient.transferCashToBank(req).getMessage();
+        } else {
+            return multibankExternalClient.depositToAccount(transferRequest);
+        }
+    }
+
+    private void validateExternalTransferResult(String res) {
+        if (!res.equalsIgnoreCase("deposit succesful"))
+            throw new RuntimeException("Withdrawal Failed.");
+    }
+
+    private TransferResponse prepareTransferResponse(Long userId, BigDecimal transferAmount, String message) {
+        TransferResponse transferResponse = new TransferResponse();
+
+        Account updatedAccount = getAccount(userId);
+        
+        transferResponse.setAccount(updatedAccount);
+        transferResponse.setMessage(message);
+        transferResponse.setTransferAmount(transferAmount);
+        
+        return transferResponse;
     }
 }
