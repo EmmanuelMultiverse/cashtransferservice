@@ -61,7 +61,7 @@ public class TransferService {
 		processTransferBetweenAccounts(sendingAccount, receivingAccount, transferRequest.getAmount());
 		processTransaction(transferRequest.getAmount(), sendingUser.getId(), receivingUser.getId(), sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber());
 
-		return new TransferResponse(transferRequest.getAmount(), getAccount(sendingUser.getId()), "Transfer successful");
+		return prepareTransferResponse(sendingUser.getId(), transferRequest.getAmount(), "Sucess");
 	}
 
 	@Transactional
