@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cashtransfer.main.clients.MultibankExternalClient;
 import com.cashtransfer.main.clients.VersebankClient;
-import com.cashtransfer.main.controllers.TransactionController;
 import com.cashtransfer.main.model.Account;
 import com.cashtransfer.main.model.BankTransferRequest;
 import com.cashtransfer.main.model.PeerTransferRequest;
@@ -24,8 +23,6 @@ import java.time.LocalDateTime;
 @Service
 public class TransferService {
 
-    private final TransactionController transactionController;
-
 	private final AccountRepository accountRepository;
 
 	private final AuthService authService;
@@ -40,14 +37,13 @@ public class TransferService {
 
 	public TransferService(VersebankClient versebankClient, MultibankExternalClient multibankExternalClient,
 			TransactionService transactionService, AccountRepository accountRepository, UserRepository userRepository,
-			AuthService authService, TransactionController transactionController) {
+			AuthService authService) {
 		this.multibankExternalClient = multibankExternalClient;
 		this.versebankClient = versebankClient;
 		this.transactionService = transactionService;
 		this.accountRepository = accountRepository;
 		this.userRepository = userRepository;
 		this.authService = authService;
-		this.transactionController = transactionController;
 	}
 
 	@Transactional
