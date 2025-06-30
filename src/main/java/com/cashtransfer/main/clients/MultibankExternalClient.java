@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 
 import com.cashtransfer.main.model.BankTransferRequest;
 
-@FeignClient(name = "multibank-client", url = "http://localhost:9090/api")
+@FeignClient(name = "multibank-client", url = "http://multibank:8080/api")
 public interface MultibankExternalClient {
 
 	@PostMapping("/transaction/deposit")

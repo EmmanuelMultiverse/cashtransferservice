@@ -33,29 +33,17 @@ public class JwsAuthFilter extends OncePerRequestFilter {
 		final String username;
 		final String jwt;
 
-		System.out.println("--- JwsAuthFilter: START processing request for " + request.getRequestURI() + " ---");
-		System.out.println("Authorization Header: " + authHeader);
 
 		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			System.out.println("JwsAuthFilter: No Bearer token found. Skipping filter.");
-
 			filterChain.doFilter(request, response);
 			return;
 		}
-
+		
 		jwt = authHeader.substring(7);
 		username = jwtUtil.extractUsername(jwt);
-		System.out.println("JwsAuthFilter: JWT extracted: " + jwt.substring(0, Math.min(jwt.length(), 20)) + "..."); // Print
-																														// first
-																														// 20
-																														// chars
-		System.out.println("JwsAuthFilter: Username extracted from JWT: " + username);
 
 		if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 			var userDetails = this.userDetailsService.loadUserByUsername(username);
-			System.out.println("JwsAuthFilter: Username is valid (" + username
-					+ ") and SecurityContext is null. Attempting to load UserDetails.");
-
 			if (jwtUtil.validateToken(jwt, userDetails)) {
 				var authToken = new UsernamePasswordAuthenticationToken(userDetails, null,
 						userDetails.getAuthorities());

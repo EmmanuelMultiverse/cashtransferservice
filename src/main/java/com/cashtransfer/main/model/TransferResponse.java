@@ -13,8 +13,8 @@ public class TransferResponse {
 
 	private BigDecimal transferAmount;
 
+	private Account accountBefore;
 	private Account account;
-
 	private String message;
 
 }

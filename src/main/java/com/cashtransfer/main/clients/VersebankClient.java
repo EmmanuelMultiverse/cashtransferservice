@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import com.cashtransfer.main.model.VersebankClientRequest;
 import com.cashtransfer.main.model.VersebankResponse;
 
-@FeignClient(name = "versebank", url = "http://localhost:5001")
+@FeignClient(name = "versebank", url = "http://versebank:5001")
 public interface VersebankClient {
 
 	@PostMapping("/deposit")

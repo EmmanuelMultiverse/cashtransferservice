@@ -1,6 +1,7 @@
 package com.cashtransfer.main.services;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,15 +12,15 @@ import com.cashtransfer.main.model.Account;
 import com.cashtransfer.main.model.BankTransferRequest;
 import com.cashtransfer.main.model.PeerTransferRequest;
 import com.cashtransfer.main.model.Transaction;
-import com.cashtransfer.main.model.TransferRequest;
 import com.cashtransfer.main.model.TransferResponse;
 import com.cashtransfer.main.model.User;
 import com.cashtransfer.main.model.VersebankClientRequest;
 import com.cashtransfer.main.repository.AccountRepository;
 import com.cashtransfer.main.repository.UserRepository;
 
-import java.time.LocalDateTime;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class TransferService {
 
@@ -48,44 +49,61 @@ public class TransferService {
 
 	@Transactional
 	public TransferResponse transferMoneyToPeer(PeerTransferRequest transferRequest) {
-        User sendingUser = getSendingUser();
-        User receivingUser = getUser(transferRequest.getReceivingUsername());
+		log.info("Getting user account..");
+		User sendingUser = getSendingUser();
+		User receivingUser = getUser(transferRequest.getReceivingUsername());
 
-        Account sendingAccount = getSendingUserAccountAndValidate(sendingUser.getId(), transferRequest.getAmount(), transferRequest.getTransferType());
-        Account receivingAccount = getAccount(receivingUser.getId());
-
+		Account sendingAccount = getSendingUserAccountAndValidate(sendingUser.getId(), transferRequest.getAmount(),
+				transferRequest.getTransferType());
+		log.info("Succesfuly got user info!");
+		
+		Account receivingAccount = getAccount(receivingUser.getId());
+		
+		log.info("Processing peer transfer..");
 		processTransferBetweenAccounts(sendingAccount, receivingAccount, transferRequest.getAmount());
-		processTransaction(transferRequest.getAmount(), sendingUser.getId(), receivingUser.getId(), sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber());
+		log.info("Succesfuly processed peer transfer!");
 
-		return prepareTransferResponse(sendingUser.getId(), transferRequest.getAmount(), "Sucess");
+		log.info("Storing transaction..");
+		processTransaction(transferRequest.getAmount(), sendingUser.getId(), receivingUser.getId(),
+				sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber());
+		log.info("Succesfully managed to store transaction!");
+
+		return prepareTransferResponse(sendingUser.getId(), transferRequest.getAmount(), sendingAccount, "Sucess");
 	}
 
 	@Transactional
 	public TransferResponse transferCashToBankAccount(BankTransferRequest transferRequest) {
+		log.info("Getting user info..");
 		User user = getSendingUser();
-		Account userAccount = getSendingUserAccountAndValidate(user.getId(), transferRequest.getAmount(), transferRequest.getTransferType());
-
-        withdrawalFundsFromAccount(userAccount.getId(), userAccount.getBalance(), transferRequest.getAmount());
-
+		Account userAccount = getSendingUserAccountAndValidate(user.getId(), transferRequest.getAmount(),
+				transferRequest.getTransferType());
+		log.info("Successfuly got user info!");
+		log.info("Processing withdrawal..");
+		withdrawalFundsFromAccount(userAccount.getId(), userAccount.getBalance(), transferRequest.getAmount());
+		
+		log.info("Making call to external bank..");
 		String externalTransferMessage = executeExternalTransfer(transferRequest);
-        
+		log.info("External bank call complete!");
 		validateExternalTransferResult(externalTransferMessage);
-
-		return prepareTransferResponse(user.getId(), transferRequest.getAmount(), externalTransferMessage);
+		return prepareTransferResponse(user.getId(), transferRequest.getAmount(), userAccount, externalTransferMessage);
 	}
 
 	@Transactional
 	public TransferResponse transferCashToMulticashAccount(BankTransferRequest transferRequest) {
+		log.info("Getting user info..");
 		User user = getSendingUser();
 		Account account = getAccount(user.getId());
+		log.info("Succesfully got user info..");
 
+		log.info("Processing deposit..");
 		depositFundsIntoAccount(account.getId(), account.getBalance(), transferRequest.getAmount());
 
+		log.info("Making call to external bank..");
 		String externalResponse = executeExternalTransfer(transferRequest);
-
+		log.info("External bank call complete!");
 		validateExternalTransferResult(externalResponse);
-
-		return prepareTransferResponse(user.getId(), transferRequest.getAmount(), externalResponse);
+		
+		return prepareTransferResponse(user.getId(), transferRequest.getAmount(), account, externalResponse);
 	}
 
 	private Account getSendingUserAccountAndValidate(Long id, BigDecimal amount, String transferType) {
@@ -120,7 +138,8 @@ public class TransferService {
 		accountRepository.setBalance(receivingAccount.getId(), receivingNewBalance);
 	}
 
-	private void processTransaction(BigDecimal amount, Long sendingUserId, Long receivingUserId, String sendingAccountNumber, String receivingAccountNumber) {
+	private void processTransaction(BigDecimal amount, Long sendingUserId, Long receivingUserId,
+			String sendingAccountNumber, String receivingAccountNumber) {
 		Transaction userTransaction = new Transaction(null, sendingAccountNumber, receivingAccountNumber, amount,
 				LocalDateTime.now(), sendingUserId);
 		Transaction sendingUserTransaction = new Transaction(null, sendingAccountNumber, receivingAccountNumber, amount,
@@ -130,52 +149,57 @@ public class TransferService {
 		transactionService.storeTransaction(sendingUserTransaction);
 	}
 
-    private User getSendingUser() {
-        User sendingUser = authService.getCurrentAuthenticatedUser();
-        return sendingUser;
-    }
+	private User getSendingUser() {
+		User sendingUser = authService.getCurrentAuthenticatedUser();
+		return sendingUser;
+	}
 
-    private void withdrawalFundsFromAccount(Long accountId, BigDecimal currentBalance, BigDecimal amount) {
-        BigDecimal newBalance = currentBalance.subtract(amount);
-        accountRepository.setBalance(accountId, newBalance);
-    }
+	private void withdrawalFundsFromAccount(Long accountId, BigDecimal currentBalance, BigDecimal amount) {
+		BigDecimal newBalance = currentBalance.subtract(amount);
+		accountRepository.setBalance(accountId, newBalance);
+	}
 
 	private void depositFundsIntoAccount(Long accountId, BigDecimal currentBalance, BigDecimal amount) {
 		BigDecimal newBalance = currentBalance.add(amount);
 		accountRepository.setBalance(accountId, newBalance);
 	}
 
-    private String executeExternalTransfer(BankTransferRequest transferRequest) {
-        if (transferRequest.getAccountNumber().length() > 6) {
-			VersebankClientRequest req = new VersebankClientRequest(transferRequest.getAccountNumber(), transferRequest.getAmount());
+	private String executeExternalTransfer(BankTransferRequest transferRequest) {
+		if (transferRequest.getAccountNumber().length() > 6) {
+			VersebankClientRequest req = new VersebankClientRequest(transferRequest.getAccountNumber(),
+					transferRequest.getAmount());
 			if (transferRequest.getTransferType().equalsIgnoreCase("DEPOSIT")) {
 				return versebankClient.transferCashToMulticashAccount(req).getMessage();
-			} else {
+			}
+			else {
 				return versebankClient.transferCashToBank(req).getMessage();
 			}
-        } else {
-            if (transferRequest.getTransferType().equalsIgnoreCase("DEPOSIT")) {
+		}
+		else {
+			if (transferRequest.getTransferType().equalsIgnoreCase("DEPOSIT")) {
 				return multibankExternalClient.transferToMulticashAccount(transferRequest);
-			} else {
+			}
+			else {
 				return multibankExternalClient.depositToAccount(transferRequest);
 			}
-        }
-    }
+		}
+	}
 
-    private void validateExternalTransferResult(String res) {
-        if (!res.toLowerCase().contains("succesful"));
-            throw new RuntimeException("Transfer Failed.");
-    }
+	private void validateExternalTransferResult(String res) {
+		if (!res.toLowerCase().contains("successful"))
+			throw new RuntimeException(res);
+	}
 
-    private TransferResponse prepareTransferResponse(Long userId, BigDecimal transferAmount, String message) {
-        TransferResponse transferResponse = new TransferResponse();
+	private TransferResponse prepareTransferResponse(Long userId, BigDecimal transferAmount, Account accountBeforeTransfer, String message) {
+		TransferResponse transferResponse = new TransferResponse();
 
-        Account updatedAccount = getAccount(userId);
-        
-        transferResponse.setAccount(updatedAccount);
-        transferResponse.setMessage(message);
-        transferResponse.setTransferAmount(transferAmount);
-        
-        return transferResponse;
-    }
+		Account updatedAccount = getAccount(userId);
+
+		transferResponse.setAccount(updatedAccount);
+		transferResponse.setMessage(message);
+		transferResponse.setTransferAmount(transferAmount);
+		transferResponse.setAccountBefore(accountBeforeTransfer);
+		return transferResponse;
+	}
+
 }
