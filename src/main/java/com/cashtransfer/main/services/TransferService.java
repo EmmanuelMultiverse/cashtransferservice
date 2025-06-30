@@ -68,7 +68,7 @@ public class TransferService {
 				sendingAccount.getAccountNumber(), receivingAccount.getAccountNumber());
 		log.info("Succesfully managed to store transaction!");
 
-		return prepareTransferResponse(sendingUser.getId(), transferRequest.getAmount(), sendingAccount, "Sucess");
+		return prepareTransferResponse(sendingUser.getId(), transferRequest.getAmount(), sendingAccount, "Success");
 	}
 
 	@Transactional

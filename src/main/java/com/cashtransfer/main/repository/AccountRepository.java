@@ -16,7 +16,7 @@ public interface AccountRepository extends CrudRepository<Account, Long> {
 
 	Optional<Account> findByAccountNumber(String accountNumber);
 
-	@Query("SELECT 8 FROM \"accounts\" WHERE userId = :userId FOR UPDATE")
+	@Query("SELECT * FROM \"accounts\" WHERE user_id = :userId FOR UPDATE")
 	Optional<Account> findAndLockByUserId(@Param("userId") Long userId);
 
 	@Modifying
