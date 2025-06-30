@@ -57,7 +57,7 @@ public class TransferService {
 				transferRequest.getTransferType());
 		log.info("Succesfuly got user info!");
 		
-		Account receivingAccount = getAccount(receivingUser.getId());
+		Account receivingAccount = getAccountAndLock(receivingUser.getId());
 		
 		log.info("Processing peer transfer..");
 		processTransferBetweenAccounts(sendingAccount, receivingAccount, transferRequest.getAmount());
@@ -82,9 +82,15 @@ public class TransferService {
 		withdrawalFundsFromAccount(userAccount.getId(), userAccount.getBalance(), transferRequest.getAmount());
 		
 		log.info("Making call to external bank..");
-		String externalTransferMessage = executeExternalTransfer(transferRequest);
-		log.info("External bank call complete!");
-		validateExternalTransferResult(externalTransferMessage);
+		String externalTransferMessage;
+		try {
+			externalTransferMessage = executeExternalTransfer(transferRequest);
+			validateExternalTransferResult(externalTransferMessage);
+			log.info("External bank call complete!");
+		} catch (Exception e) {
+			throw new RuntimeException("External Bank call failed.");
+		}
+
 		return prepareTransferResponse(user.getId(), transferRequest.getAmount(), userAccount, externalTransferMessage);
 	}
 
@@ -92,23 +98,28 @@ public class TransferService {
 	public TransferResponse transferCashToMulticashAccount(BankTransferRequest transferRequest) {
 		log.info("Getting user info..");
 		User user = getSendingUser();
-		Account account = getAccount(user.getId());
+		Account account = getAccountAndLock(user.getId());
 		log.info("Succesfully got user info..");
 
 		log.info("Processing deposit..");
 		depositFundsIntoAccount(account.getId(), account.getBalance(), transferRequest.getAmount());
 
 		log.info("Making call to external bank..");
-		String externalResponse = executeExternalTransfer(transferRequest);
-		log.info("External bank call complete!");
-		validateExternalTransferResult(externalResponse);
+		String externalResponse;
+		try {
+			externalResponse = executeExternalTransfer(transferRequest);
+			validateExternalTransferResult(externalResponse);
+			log.info("External bank call complete!");
+		} catch (Exception e) {
+			throw new RuntimeException("External bank call failed.");
+		}
 		
 		return prepareTransferResponse(user.getId(), transferRequest.getAmount(), account, externalResponse);
 	}
 
 	private Account getSendingUserAccountAndValidate(Long id, BigDecimal amount, String transferType) {
 
-		Account authenticatedUserAccount = accountRepository.findByUserId(id)
+		Account authenticatedUserAccount = accountRepository.findAndLockByUserId(id)
 			.orElseThrow(() -> new RuntimeException("Could not find account for authenticated user."));
 
 		// Rewrite to switch statement if too many checks are happening
@@ -125,6 +136,11 @@ public class TransferService {
 			.orElseThrow(() -> new RuntimeException(String.format("Could not find username: %s", username)));
 	}
 
+	private Account getAccountAndLock(Long userId) {
+		return accountRepository.findAndLockByUserId(userId)
+			.orElseThrow(() -> new RuntimeException("Could not find account"));
+	}
+
 	private Account getAccount(Long userId) {
 		return accountRepository.findByUserId(userId)
 			.orElseThrow(() -> new RuntimeException(String.format("Could not find account for userId: %d", userId)));
@@ -132,10 +148,18 @@ public class TransferService {
 
 	private void processTransferBetweenAccounts(Account sendingAccount, Account receivingAccount, BigDecimal amount) {
 		BigDecimal sendingNewBalance = sendingAccount.getBalance().subtract(amount);
-		BigDecimal receivingNewBalance = sendingAccount.getBalance().add(amount);
+		BigDecimal receivingNewBalance = receivingAccount.getBalance().add(amount); // Corrected from sendingAccount
 
-		accountRepository.setBalance(sendingAccount.getId(), sendingNewBalance);
-		accountRepository.setBalance(receivingAccount.getId(), receivingNewBalance);
+		// Ensure a consistent lock order by always updating the account with the smaller ID first.
+		Account first = sendingAccount.getId() < receivingAccount.getId() ? sendingAccount : receivingAccount;
+		Account second = sendingAccount.getId() < receivingAccount.getId() ? receivingAccount : sendingAccount;
+
+		// The balances are calculated before, so we just need to apply them in the correct order.
+		BigDecimal firstNewBalance = first.equals(sendingAccount) ? sendingNewBalance : receivingNewBalance;
+		BigDecimal secondNewBalance = second.equals(sendingAccount) ? sendingNewBalance : receivingNewBalance;
+
+		accountRepository.setBalance(first.getId(), firstNewBalance);
+		accountRepository.setBalance(second.getId(), secondNewBalance);
 	}
 
 	private void processTransaction(BigDecimal amount, Long sendingUserId, Long receivingUserId,
