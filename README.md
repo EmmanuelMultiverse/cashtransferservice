@@ -49,7 +49,6 @@ MultiCash is a Spring Boot application designed for secure and efficient money t
     spring.datasource.driverClassName=org.h2.Driver
     spring.datasource.username=sa
     spring.datasource.password=password
-    spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
     ```
     *Example for PostgreSQL:*
     ```properties
@@ -57,7 +56,6 @@ MultiCash is a Spring Boot application designed for secure and efficient money t
     spring.datasource.url=jdbc:postgresql://localhost:5432/your_db
     spring.datasource.username=your_user
     spring.datasource.password=your_password
-    spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
     ```
 
 3.  **Run Dependent Services:**
